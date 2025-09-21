@@ -32,7 +32,7 @@ I leveraged `Python 3.9` when running the code.
 Run the below exemplary command to run the CNN method for English.
 
 ```bash
-python main.py supervised --method cnn --dataset datasets/english_sentiment_data.csv 
+python main.py supervised --method cnn --lang english --dataset datasets/english_sentiment_data.csv 
 ```
 
 If you only want to run the LSTM approach for Turkish, you can utilize the below exemplary command:
