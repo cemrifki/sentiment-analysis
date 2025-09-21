@@ -117,7 +117,7 @@ Example commands:
 # Supervised CNN (English, default dataset)
 python main.py supervised --method cnn --lang english --dataset datasets/english_sentiment_data.csv 
 
-# Supervised LSTM (Turkish, custom dataset, 5 epochs, batch size 32)
+# Supervised LSTM (Turkish, custom dataset, 5 epochs, batch size 16)
 python main.py supervised --method lstm --lang turkish --dataset datasets/turkish_sentiment_data.csv --epochs 5 --batch_size 16
 
 # Supervised delta-IDF (Turkish)
