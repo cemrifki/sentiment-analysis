@@ -1,5 +1,10 @@
-# sentiment-analysis
-In this project, sentiment analysis is performed in Turkish and English. To achieve this, unsupervised, semi-supervised, and supervised approaches have been developed and applied. The supervised methods include LSTM, CNN, and delta-IDF techniques. For Turkish, a morphological analysis is also incorporated, further improving performance. The methods are evaluated on datasets from various genres, making the approach cross-domain and easily adaptable to other languages.
+# Sentiment analysis in Turkish: Supervised, semi-supervised, and unsupervised techniques
+
+This repo contains the source code of the paper --
+
+Sentiment analysis in Turkish: Supervised, semi-supervised, and unsupervised techniques. Cem Rıfkı Aydın, Tunga Güngör. Natural Language Engineering, Cambridge University Press.
+
+In this study, sentiment analysis is performed in Turkish and English. To achieve this, unsupervised, semi-supervised, and supervised approaches have been developed and applied. The supervised methods include LSTM, CNN, and delta-IDF techniques. For Turkish, a morphological analysis is also incorporated, further improving performance. The methods are evaluated on datasets from various genres, making the approach cross-domain and easily adaptable to other languages.
 
 ## Requirements
 
