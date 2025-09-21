@@ -1,4 +1,13 @@
-# main.py
+"""
+Main script to run sentiment classification using different paradigms:
+- Supervised: CNN, LSTM, delta-IDF, Morpho-delta
+- Semi-supervised: Graph-based random walk labeling
+- Unsupervised: Search-based label extraction
+
+Author: Cem Rifki Aydin
+Date: 10/01/2020
+
+"""
 import argparse
 import sys
 
@@ -103,15 +112,15 @@ if __name__ == "__main__":
 
 
 """
-Exemple commands:
+Example commands:
 
 # Supervised CNN (English, default dataset)
 python main.py supervised --method cnn --lang english --dataset datasets/english_sentiment_data.csv 
 
 # Supervised LSTM (Turkish, custom dataset, 5 epochs, batch size 32)
-python main.py supervised --method lstm --lang turkish --dataset datasets/turkish_sentiment_data.csv --epochs 5 --batch_size 32
+python main.py supervised --method lstm --lang turkish --dataset datasets/turkish_sentiment_data.csv --epochs 5 --batch_size 16
 
-# Supervised delta-IDF (English)
+# Supervised delta-IDF (Turkish)
 python main.py supervised --method delta_idf --lang turkish --dataset datasets/turkish_sentiment_data.csv
 
 # Semi-supervised approach
