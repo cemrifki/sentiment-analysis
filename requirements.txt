@@ -15,7 +15,7 @@ tensorflow==2.14.0
 jpype1==1.5.2  # only needed if using Zemberek via Python
 
 # Progress bar
-tqdm==4.66.1
+tqdm==4.66.3
 
 # Utilities
 # regex==2022.10.31
