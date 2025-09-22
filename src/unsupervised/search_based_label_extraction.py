@@ -201,8 +201,6 @@ def main(args):
 
     # In fact, a balanced dataset is not needed here for the unsupervised approach, but for testing purposes    
     balanced_df = make_balanced(df, label_col="sentiment", random_state=42)
-    balanced_df = pd.concat([balanced_df[balanced_df["sentiment"]=="positive"].head(5),
-                             balanced_df[balanced_df["sentiment"]=="negative"].head(5)])
 
     # If you just want the text column as a list
     corpus = balanced_df["text"].tolist()
