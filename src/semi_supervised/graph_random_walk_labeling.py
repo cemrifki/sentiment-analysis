@@ -6,7 +6,6 @@ Date: 10/01/2020
 
 """
 
-
 # ------------------------------
 # Standard library imports
 # ------------------------------
@@ -24,8 +23,6 @@ import pandas as pd
 from scipy.sparse.linalg import svds
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.model_selection import train_test_split
-import nltk
-from nltk.corpus import stopwords
 
 # ------------------------------
 # Local imports
@@ -38,13 +35,6 @@ from src.utils.seeds import POSITIVE_SEEDS, NEGATIVE_SEEDS
 # ------------------------------
 # Ignore warnings globally
 warnings.filterwarnings("ignore")
-
-# Ensure stopwords are available (can be moved to setup script)
-try:
-    ENGLISH_STOPWORDS = set(stopwords.words("english"))
-except LookupError:
-    nltk.download("stopwords")
-    ENGLISH_STOPWORDS = set(stopwords.words("english"))
 
 LANG = "english"
 
@@ -109,6 +99,9 @@ def classify_whole_texts(df, text_col, label_col, word_scores, threshold=0.0):
 
 
 class CorpusEmbeddings:
+    """
+    Build word embeddings from corpus using PPMI + SVD.
+    """
     def __init__(self, window_size: int = 4, smoothing: float = 0.75, dim: int = 300):
         self.window_size = window_size
         self.smoothing = smoothing
@@ -178,6 +171,10 @@ class CorpusEmbeddings:
 
 
 class SentProp:
+    """
+    SentProp: Graph-based Random Walk Labeling for Sentiment Induction.
+    Reference: Hamilton et al. (2016). Inducing Domain-Specific Sentiment Lexicons from Unlabeled Corpora.
+    """
     def __init__(self, vocab: list, embeddings: np.ndarray, k_neighbors: int = 10, beta: float = 0.85):
         self.vocab = vocab
         self.embeddings = embeddings
@@ -271,7 +268,10 @@ def make_balanced(df, label_col="sentiment", random_state=42):
 
 
 def main(args=None):
-
+    """
+    Main function to run the semi-supervised graph-based sentiment labeling.
+    """
+    
     dataset_path = args.dataset
     LANG = args.lang
 
@@ -290,7 +290,6 @@ def main(args=None):
     corpus = train_df["text"].tolist()
     labels = train_df["sentiment"].tolist()
 
-
     corpus = filter_by_frequency([tokenize(text, LANG) for text in corpus])
     corpus = [" ".join(text) for text in corpus]
 
@@ -302,8 +301,6 @@ def main(args=None):
     # Step 2: Initialize SentProp
     sentprop = SentProp(vocab, embeddings, k_neighbors=5, beta=0.9)
     sentprop.build_graph()
-
-
 
     # Step 3: Compute scores
     word_scores = sentprop.score_words(POSITIVE_SEEDS, NEGATIVE_SEEDS)
@@ -318,7 +315,7 @@ def main(args=None):
     print(json.dumps(std_scores, ensure_ascii=False, indent=2))
 
     # Classify
-    classified_df, metrics = classify_whole_texts(train_df, text_col="text", label_col="sentiment", word_scores=word_scores)
+    classified_df, metrics = classify_whole_texts(test_df, text_col="text", label_col="sentiment", word_scores=word_scores)
     
     print("\nTraining Set Classification Metrics:")
     print(metrics["classification_report"])    

@@ -39,24 +39,32 @@ class BasicFunctions:
     def elapsed_time(start: float, end: float) -> str:
         return f"{(end - start) / 1000:.2f} seconds"
 
-
-# For Turkish
-# class Constants:
-#     WORD_PAIRS = [
-#         ["sevgi", "nefret"], ["güzel", "çirkin"], ["doğru", "yanlış"],
-#         ["harika", "berbat"], ["tatlı", "acı"], ["olumlu", "olumsuz"],
-#         ["zevkli", "sıkıcı"], ["iyi", "kötü"], ["başyapıt", "vasat"]
-#     ]
-#     PRINT_RESULTS = True
-
-# For English
 class Constants:
-    WORD_PAIRS = [
-        ["love", "hate"], ["beautiful", "ugly"], ["right", "wrong"],
-        ["awesome", "terrible"], ["sweet", "bitter"], ["positive", "negative"],
-        ["fun", "boring"], ["good", "bad"], ["masterpiece", "mediocre"]
-    ]
-    PRINT_RESULTS = True
+    """Holds constants and configurations.
+    WORD_PAIRS: List[List[str]]
+        List of positive-negative word pairs for sentiment scoring.
+    PRINT_RESULTS: bool
+        Whether to print intermediate results.
+    """
+    WORD_PAIRS_MAP = {
+        "turkish": [
+            ["sevgi", "nefret"], ["güzel", "çirkin"], ["doğru", "yanlış"],
+            ["harika", "berbat"], ["tatlı", "acı"], ["olumlu", "olumsuz"],
+            ["zevkli", "sıkıcı"], ["iyi", "kötü"], ["başyapıt", "vasat"]
+        ],
+        "english": [
+            ["love", "hate"], ["beautiful", "ugly"], ["right", "wrong"],
+            ["awesome", "terrible"], ["sweet", "bitter"], ["positive", "negative"],
+            ["fun", "boring"], ["good", "bad"], ["masterpiece", "mediocre"]
+        ]
+    }
+
+    def __init__(self, lang="english", print_results=True):
+        if lang not in self.WORD_PAIRS_MAP:
+            raise ValueError(f"Unsupported language: {lang}. Choose from {list(self.WORD_PAIRS_MAP.keys())}")
+        
+        self.WORD_PAIRS = self.WORD_PAIRS_MAP[lang]
+        self.PRINT_RESULTS = print_results
 
 
 # ----------------------
@@ -70,7 +78,8 @@ class SearchEngine:
         "%C3%AE", "%C3%A2", "%C3%BB", "%C3%8E", "%C3%82", "%C3%9B"
     ]
 
-    def __init__(self, time_conn: int = 5):
+    def __init__(self, lang, time_conn: int = 5):
+        self.constants = Constants(lang=lang)
         self.time_conn = time_conn
 
     @staticmethod
@@ -105,7 +114,6 @@ class SearchEngine:
             if "tam karşılı" in text:
                 return "0.22"
             match = re.search(r'Yandex: (.*?) sonuç', text)
-            # print(match.group(1).replace("\u00A0", " ") if match else "1")
             return match.group(1).replace("\u00A0", " ") if match else "1"
         except Exception:
             return "1"
@@ -145,7 +153,7 @@ class SearchEngine:
         results_list: List[Dict] = []
 
         # Start a thread for each word pair
-        for pair in Constants.WORD_PAIRS:
+        for pair in self.constants.WORD_PAIRS:
             t = threading.Thread(target=self.calc_pair_score, args=(target_word, pair, results_list))
             threads.append(t)
             t.start()
@@ -156,7 +164,7 @@ class SearchEngine:
 
         # Compute overall average
         total_score = sum(result["score"] for result in results_list)
-        average_score = total_score / len(Constants.WORD_PAIRS)
+        average_score = total_score / len(self.constants.WORD_PAIRS)
 
         overall_result = {
             "target_word": target_word,
@@ -165,7 +173,6 @@ class SearchEngine:
         }
 
         return overall_result
-
 
 def make_balanced(df, label_col="sentiment", random_state=42):
     # Normalize labels
@@ -183,6 +190,7 @@ def make_balanced(df, label_col="sentiment", random_state=42):
     return pd.concat(balanced_parts).sample(frac=1, random_state=random_state)
 
 def main(args):
+    """Main function to run the search-based unsupervised label extraction."""
 
     dataset_path=args.dataset
     df = pd.read_csv(dataset_path) # must have columns: text, sentiment
@@ -190,8 +198,11 @@ def main(args):
     df["sentiment"] = (df["sentiment"].str.lower().
                      map(LABEL_MAP)
                      )
-    
+
+    # In fact, a balanced dataset is not needed here for the unsupervised approach, but for testing purposes    
     balanced_df = make_balanced(df, label_col="sentiment", random_state=42)
+    balanced_df = pd.concat([balanced_df[balanced_df["sentiment"]=="positive"].head(5),
+                             balanced_df[balanced_df["sentiment"]=="negative"].head(5)])
 
     # If you just want the text column as a list
     corpus = balanced_df["text"].tolist()
@@ -201,12 +212,12 @@ def main(args):
     corpus = filter_by_frequency([tokenize(text, args.lang) for text in corpus])
     corpus = [" ".join(text) for text in corpus]
 
-    search_engine = SearchEngine()
-
+    search_engine = SearchEngine(args.lang)
 
     le = LabelEncoder()
     balanced_df['Sentiment_Enc'] = le.fit_transform(balanced_df['sentiment'])
     num_classes = len(le.classes_)
+
 
     preds = []
     for row in tqdm(balanced_df.itertuples(), total=len(balanced_df)):
@@ -215,7 +226,6 @@ def main(args):
         pred = sum(tok_scores)
         pred = "positive" if pred > 0 else "negative"
         preds.append(pred)
-
 
     print(classification_report(labels, preds, target_names=le.classes_, zero_division=0))
 

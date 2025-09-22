@@ -8,6 +8,7 @@ Author: Cem Rifki Aydin
 Date: 10/01/2020
 
 """
+
 import argparse
 import sys
 
@@ -23,6 +24,9 @@ from src.semi_supervised import graph_random_walk_labeling as semi_supervised
 
 
 def main():
+    """
+    Main function to parse arguments and route to the appropriate module.
+    """
     parser = argparse.ArgumentParser(
         description="Run sentiment classification with supervised, semi-supervised, or unsupervised approaches."
     )
@@ -82,10 +86,8 @@ def main():
         if not args.method:
             print("❌ Error: --method must be specified when paradigm is 'supervised'")
             sys.exit(1)
-
         if args.method == "cnn":
             cnn.main(args)
-            # cnn.main(lang=args.lang, dataset_path=args.dataset, epochs=args.epochs, batch_size=args.batch_size)
         elif args.method == "lstm":
             lstm.main(args)
         elif args.method == "delta_idf":
@@ -110,7 +112,6 @@ def main():
 if __name__ == "__main__":
     main()
 
-
 """
 Example commands:
 
@@ -127,6 +128,6 @@ python main.py supervised --method delta_idf --lang turkish --dataset datasets/t
 python main.py --lang english semi_supervised --dataset datasets/english_sentiment_data.csv
 
 # Unsupervised approach
-python main.py --lang english unsupervised --dataset datasets/turkish_sentiment_data.csv
+python main.py --lang english unsupervised --dataset datasets/english_sentiment_data.csv
 
 """
