@@ -2,9 +2,9 @@
 
 This repo contains the source code of the paper --
 
-[Sentiment analysis in Turkish: Supervised, semi-supervised, and unsupervised techniques](https://www.cambridge.org/core/journals/natural-language-engineering/article/abs/sentiment-analysis-in-turkish-supervised-semisupervised-and-unsupervised-techniques/3E5CAB8E6A2B8877135F63485536C8F9). Cem Rıfkı Aydın, Tunga Güngör. Natural Language Engineering, Cambridge University Press.
+[Sentiment analysis in Turkish: Supervised, semi-supervised, and unsupervised techniques](https://www.cambridge.org/core/journals/natural-language-engineering/article/abs/sentiment-analysis-in-turkish-supervised-semisupervised-and-unsupervised-techniques/3E5CAB8E6A2B8877135F63485536C8F9). Cem Rıfkı Aydın, Tunga Güngör. Natural Language Engineering, **Cambridge University Press**.
 
-In this study, sentiment analysis is performed in Turkish and English. To achieve this, unsupervised, semi-supervised, and supervised approaches have been developed and applied. The supervised methods include LSTM, CNN, and delta-IDF techniques. For Turkish, a morphological analysis is also incorporated, further improving performance. The methods are evaluated on datasets from various genres, making the approach cross-domain and easily adaptable to other languages.
+In this study, sentiment analysis is performed in Turkish and English. To achieve this, unsupervised, semi-supervised, and supervised approaches have been developed and applied. The supervised methods include LSTM, CNN, and delta-IDF techniques. For Turkish, a morphological analysis is also incorporated, further improving performance. The methods are evaluated on datasets from various genres, making the approach cross-domain and easily adaptable to other languages. The code that was originally written in Java has now been rewritten in Python.
 
 ## Requirements
 
