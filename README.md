@@ -27,18 +27,54 @@ In addition to Python packages, the Zemberek tool, originally written in Java, w
 
 I leveraged `Python 3.9` when running the code.
 
+## Project Structure
+
+``` bash
+sentiment-analysis/
+├── datasets/                         # Raw and processed datasets
+│   ├── turkish/                      # Turkish datasets
+│   └── english/                      # English datasets
+│
+├── resources/                        # External resources (Zemberek used for morphological parsing)
+│   └── zemberek-full.jar
+│
+├── src/                              # Core source code
+│   ├── supervised/                   # Supervised learning models
+│   │   ├── cnn.py
+│   │   ├── delta_idf.py
+│   │   ├── lstm.py
+│   │   └── morpho_delta_classifier.py
+│   │
+│   ├── semi_supervised/              # Semi-supervised methods
+│   │   └── graph_random_walk_labeling.py
+│   │
+│   ├── unsupervised/                 # Unsupervised methods
+│   │   └── search_based_label_extraction.py
+│   │
+│   ├── utils/                        # Helper functions
+│   │   ├── seeds.py
+│   │   └── utils.py
+│   │
+│   └── __init__.py
+│
+├── LICENSE
+├── README.md
+├── requirements.txt
+└── main.py                           # Entrypoint (train/eval script)
+```
+
 ## Usage
 
 Run the below exemplary command to run the CNN method for English.
 
 ```bash
-python main.py supervised --method cnn --lang english --dataset datasets/english_sentiment_data.csv 
+python main.py supervised --method cnn --lang english --dataset datasets/english/english_sentiment_data.csv 
 ```
 
 If you only want to run the LSTM approach for Turkish, you can utilize the below exemplary command:
 
 ```bash
-python main.py supervised --method lstm --lang turkish --dataset datasets/turkish_sentiment.csv --epochs 5 --batch_size 32
+python main.py supervised --method lstm --lang turkish --dataset datasets/turkish/turkish_sentiment_data.csv --epochs 5 --batch_size 32
 
 ```
 ## Citation

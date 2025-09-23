@@ -116,18 +116,18 @@ if __name__ == "__main__":
 Example commands:
 
 # Supervised CNN (English, default dataset)
-python main.py supervised --method cnn --lang english --dataset datasets/english_sentiment_data.csv 
+python main.py supervised --method cnn --lang english --dataset datasets/english/english_sentiment_data.csv 
 
 # Supervised LSTM (Turkish, custom dataset, 5 epochs, batch size 16)
-python main.py supervised --method lstm --lang turkish --dataset datasets/turkish_sentiment_data.csv --epochs 5 --batch_size 16
+python main.py supervised --method lstm --lang turkish --dataset datasets/turkish/turkish_sentiment_data.csv --epochs 5 --batch_size 16
 
 # Supervised delta-IDF (Turkish)
-python main.py supervised --method delta_idf --lang turkish --dataset datasets/turkish_sentiment_data.csv
+python main.py supervised --method delta_idf --lang turkish --dataset datasets/turkish/turkish_sentiment_data.csv
 
 # Semi-supervised approach
-python main.py --lang english semi_supervised --dataset datasets/english_sentiment_data.csv
+python main.py --lang english semi_supervised --dataset datasets/english/english_sentiment_data.csv
 
 # Unsupervised approach
-python main.py --lang english unsupervised --dataset datasets/english_sentiment_data.csv
+python main.py --lang english unsupervised --dataset datasets/english/english_sentiment_data.csv
 
 """
