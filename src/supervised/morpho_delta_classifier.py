@@ -77,8 +77,6 @@ MORPH_MULTIPLIERS = {
     "agt": 1.0,
     "pres": 1.0,
     "prog1": 1.0,
-    "opt": 0.45,
-    "imp": 1.45,
     # keep any others neutral by default
 }
 

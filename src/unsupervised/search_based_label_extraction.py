@@ -71,6 +71,10 @@ class Constants:
 # Search Engine Class
 # ----------------------
 class SearchEngine:
+    """
+    Search Engine for Unsupervised Label Extraction using Yandex.
+    Uses predefined positive-negative word pairs to compute sentiment scores.
+    """
     TURKISH_CHARS = "ğüşıöçĞÜŞİÖÇîâûÎÂÛ"
     EQUIV = [
         "%C4%9F", "%C3%BC", "%C5%9F", "%C4%B1", "%C3%B6", "%C3%A7",
