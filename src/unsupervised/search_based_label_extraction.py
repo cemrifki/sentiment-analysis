@@ -66,7 +66,6 @@ class Constants:
         self.WORD_PAIRS = self.WORD_PAIRS_MAP[lang]
         self.PRINT_RESULTS = print_results
 
-
 # ----------------------
 # Search Engine Class
 # ----------------------
@@ -82,10 +81,12 @@ class SearchEngine:
         "%C3%AE", "%C3%A2", "%C3%BB", "%C3%8E", "%C3%82", "%C3%9B"
     ]
 
-    def __init__(self, lang, time_conn: int = 5):
+    def __init__(self, lang: str, near: int = 4, time_conn: int = 5):
         self.constants = Constants(lang=lang)
+        self.lang = lang
+        self.near = near  # <-- configurable NEAR window size
         self.time_conn = time_conn
-
+        
     @staticmethod
     def str_to_db_yan(s: str) -> float:
         """Convert Yandex count string to float."""
@@ -105,7 +106,7 @@ class SearchEngine:
 
     def query_result(self, query_word: str, related_word: str) -> str:
         """Query Yandex and return the number of results as string."""
-        near = "%2F12"
+        near = f"%2F{self.near}"   # dynamically inject near value
         space = "%20"
         all_query = f'{query_word}{space}{near}{space}{related_word}'
         for c, e in zip(self.TURKISH_CHARS, self.EQUIV):
@@ -197,7 +198,7 @@ def main(args):
     """Main function to run the search-based unsupervised label extraction."""
 
     dataset_path=args.dataset
-    df = pd.read_csv(dataset_path) # must have columns: text, sentiment
+    df = pd.read_csv(dataset_path)  # must have columns: text, sentiment
 
     df["sentiment"] = (df["sentiment"].str.lower().
                      map(LABEL_MAP)
@@ -214,12 +215,11 @@ def main(args):
     corpus = filter_by_frequency([tokenize(text, args.lang) for text in corpus])
     corpus = [" ".join(text) for text in corpus]
 
-    search_engine = SearchEngine(args.lang)
+    search_engine = SearchEngine(args.lang, args.near if args.near else 4)
 
     le = LabelEncoder()
     balanced_df['Sentiment_Enc'] = le.fit_transform(balanced_df['sentiment'])
     num_classes = len(le.classes_)
-
 
     preds = []
     for row in tqdm(balanced_df.itertuples(), total=len(balanced_df)):
@@ -233,4 +233,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    main(args=None)
+    main(args=None) 

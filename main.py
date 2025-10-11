@@ -71,6 +71,13 @@ def main():
         help="Batch size for neural models (default: 16)"
     )
 
+    parser.add_argument(
+        "--near",
+        type=int,
+        default=None,
+        help="Context window size for the unsupervised approach (e.g., 4, 5, 12)."
+    )
+
     args = parser.parse_args()
 
     # --- Validation ---
@@ -79,7 +86,10 @@ def main():
 
     if args.method == "morpho" and args.lang != "turkish":
         parser.error("The 'morpho' method is only supported for Turkish (--lang turkish).")
-                     
+
+    if args.paradigm == "unsupervised" and (args.near is None or args.near <= 0):
+        parser.error("--near must be a positive integer for the unsupervised approach.")
+                
 
     # Route execution
     if args.paradigm == "supervised":
@@ -128,6 +138,6 @@ python main.py supervised --method delta_idf --lang turkish --dataset datasets/t
 python main.py --lang english semi_supervised --dataset datasets/english/english_sentiment_data.csv
 
 # Unsupervised approach
-python main.py --lang english unsupervised --dataset datasets/english/english_sentiment_data.csv
+python main.py --lang english unsupervised --near 3 --dataset datasets/english/english_sentiment_data.csv
 
 """
