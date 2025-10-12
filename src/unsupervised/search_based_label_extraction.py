@@ -9,6 +9,7 @@ Date: 12/01/2020
 # ------------------------------
 # Standard library imports
 # ------------------------------
+import os
 import json
 import math
 import re
@@ -19,6 +20,7 @@ from typing import Dict, List
 # ------------------------------
 # Third-party imports
 # ------------------------------
+import numpy as np
 import pandas as pd
 import requests
 from sklearn.metrics import accuracy_score, f1_score, classification_report
@@ -74,19 +76,15 @@ class SearchEngine:
     Search Engine for Unsupervised Label Extraction using Yandex.
     Uses predefined positive-negative word pairs to compute sentiment scores.
     """
-    TURKISH_CHARS = "ğüşıöçĞÜŞİÖÇîâûÎÂÛ"
-    EQUIV = [
-        "%C4%9F", "%C3%BC", "%C5%9F", "%C4%B1", "%C3%B6", "%C3%A7",
-        "%C4%9E", "%C3%9C", "%C5%9E", "%C4%B0", "%C3%96", "%C3%87",
-        "%C3%AE", "%C3%A2", "%C3%BB", "%C3%8E", "%C3%82", "%C3%9B"
-    ]
 
-    def __init__(self, lang: str, near: int = 4, time_conn: int = 5):
+    def __init__(self, lang: str, near: int = 4, time_conn: int = 5, cache_path="cached_sentiments.json"):
         self.constants = Constants(lang=lang)
         self.lang = lang
-        self.near = near  # <-- configurable NEAR window size
+        self.near = near
         self.time_conn = time_conn
-        
+        self.cache_path = cache_path
+        self.cache = self._load_cache()
+
     @staticmethod
     def str_to_db_yan(s: str) -> float:
         """Convert Yandex count string to float."""
@@ -104,15 +102,26 @@ class SearchEngine:
                 break
         return val * multiplier
 
+    def _load_cache(self) -> Dict[str, Dict]:
+        """Load cached sentiments if available."""
+        if os.path.exists(self.cache_path):
+            with open(self.cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {}
+
+    def _save_cache(self):
+        """Persist current cache to disk."""
+        with open(self.cache_path, "w", encoding="utf-8") as f:
+            json.dump(self.cache, f, ensure_ascii=False, indent=2)
+
     def query_result(self, query_word: str, related_word: str) -> str:
         """Query Yandex and return the number of results as string."""
-        near = f"%2F{self.near}"   # dynamically inject near value
-        space = "%20"
+        near = f"%2F(-{self.near}+%2B{self.near})"
+        space = "+"
         all_query = f'{query_word}{space}{near}{space}{related_word}'
-        for c, e in zip(self.TURKISH_CHARS, self.EQUIV):
-            all_query = all_query.replace(c, e)
-        all_query = all_query.replace('"', '%22')
-        url = f"https://www.yandex.com.tr/search/?text={all_query}&lr=11508"
+        all_query = "\"" + all_query + "\""
+        url = f"https://www.yandex.com.tr/search/?text={all_query}&lr=11508" if related_word \
+            else f"https://www.yandex.com.tr/search/?text={query_word}&lr=11508"
         try:
             response = requests.get(url, timeout=self.time_conn)
             text = response.text
@@ -125,59 +134,74 @@ class SearchEngine:
 
     def calc_pair_score(self, target_word: str, pair: List[str], results_list: List[Dict]):
         """Calculate sentiment score for target word with respect to a word pair."""
-        target = f'"{target_word}"'
-        pos_word = f'"{pair[0]}"'
-        neg_word = f'"{pair[1]}"'
+        pos_word, neg_word = pair
 
-        pos_val = self.query_result(target, pos_word)
-        neg_val = self.query_result(target, neg_word)
+        # Co-occurrence with positive and negative words
+        pos_co = self.query_result(target_word, pos_word)
+        neg_co = self.query_result(target_word, neg_word)
 
-        score = math.log10(
-            float(self.str_to_db_yan(pos_val)) / float(self.str_to_db_yan(neg_val))
-        )
+        pos_co_parsed = float(self.str_to_db_yan(pos_co)) 
+        neg_co_parsed = float(self.str_to_db_yan(neg_co))
+
+        # Prior frequencies (unigram counts)
+        pos_prior = self.query_result(pos_word, "")
+        neg_prior = self.query_result(neg_word, "")
+
+        pos_prior_parsed = float(self.str_to_db_yan(pos_prior))
+        neg_prior_parsed = float(self.str_to_db_yan(neg_prior))
+
+        # Apply Laplace smoothing and prior normalization
+        pos_norm = (pos_co_parsed + 1) / (pos_prior_parsed + 1)
+        neg_norm = (neg_co_parsed + 1) / (neg_prior_parsed + 1)
+
+        score = math.log10(pos_norm / neg_norm)
 
         result_obj = {
             "target_word": target_word,
-            "positive_word": pair[0],
-            "positive_count": pos_val,
-            "negative_word": pair[1],
-            "negative_count": neg_val,
+            "positive_word": pos_word,
+            "negative_word": neg_word,
+            "positive_co": pos_co,
+            "negative_co": neg_co,
+            "positive_prior": pos_prior,
+            "negative_prior": neg_prior,
             "score": score
         }
 
         results_list.append(result_obj)
-        # if Constants.PRINT_RESULTS:
-        #     print(json.dumps(result_obj, ensure_ascii=False, indent=2))
 
     def compute_sentiment(self, target_word: str) -> Dict:
-        """
-        Compute sentiment of the target word using all WORD_PAIRS.
-        Returns JSON with pair scores and average score.
-        """
+        """Compute or fetch sentiment of the target word."""
+        # Return cached result if available
+        if target_word in self.cache:
+            return self.cache[target_word]
+
         threads = []
         results_list: List[Dict] = []
 
-        # Start a thread for each word pair
         for pair in self.constants.WORD_PAIRS:
             t = threading.Thread(target=self.calc_pair_score, args=(target_word, pair, results_list))
             threads.append(t)
             t.start()
 
-        # Wait for all threads to finish
         for t in threads:
             t.join()
 
-        # Compute overall average
-        total_score = sum(result["score"] for result in results_list)
-        average_score = total_score / len(self.constants.WORD_PAIRS)
+        if not results_list:
+            result = {"target_word": target_word, "pair_results": [], "average_score": 0.0}
+        else:
+            average_score = sum(r["score"] for r in results_list) / len(results_list)
 
-        overall_result = {
-            "target_word": target_word,
-            "pair_results": results_list,
-            "average_score": average_score
-        }
+            result = {
+                "target_word": target_word,
+                "pair_results": results_list,
+                "average_score": average_score
+            }
 
-        return overall_result
+        # Cache and save incrementally
+        self.cache[target_word] = result
+        self._save_cache()
+
+        return result
 
 def make_balanced(df, label_col="sentiment", random_state=42):
     # Normalize labels
@@ -195,41 +219,77 @@ def make_balanced(df, label_col="sentiment", random_state=42):
     return pd.concat(balanced_parts).sample(frac=1, random_state=random_state)
 
 def main(args):
-    """Main function to run the search-based unsupervised label extraction."""
+    """Main function to run the search-based unsupervised label extraction with global normalization 
+    based on average scores."""
 
-    dataset_path=args.dataset
-    df = pd.read_csv(dataset_path)  # must have columns: text, sentiment
-
-    df["sentiment"] = (df["sentiment"].str.lower().
-                     map(LABEL_MAP)
-                     )
-
-    # In fact, a balanced dataset is not needed here for the unsupervised approach, but for testing purposes    
+    dataset_path = args.dataset
+    df = pd.read_csv(dataset_path)
+    df["sentiment"] = df["sentiment"].str.lower().map(LABEL_MAP)
+    
+    # Balanced subset (optional, for fair testing)
     balanced_df = make_balanced(df, label_col="sentiment", random_state=42)
 
-    # If you just want the text column as a list
     corpus = balanced_df["text"].tolist()
     labels = balanced_df["sentiment"].tolist()
 
-
+    # Tokenize and filter
     corpus = filter_by_frequency([tokenize(text, args.lang) for text in corpus])
     corpus = [" ".join(text) for text in corpus]
 
+    # Initialize SearchEngine with caching
     search_engine = SearchEngine(args.lang, args.near if args.near else 4)
 
-    le = LabelEncoder()
-    balanced_df['Sentiment_Enc'] = le.fit_transform(balanced_df['sentiment'])
-    num_classes = len(le.classes_)
+    # -------------------------------------------------------
+    # Pass 1: Compute sentiment scores for all unique tokens
+    # -------------------------------------------------------
+    all_tokens = set(" ".join(corpus).split())
+    print(f"\n[INFO] Unique tokens to process: {len(all_tokens)}\n")
 
+    token_avg_scores = []
+
+    for tok in tqdm(all_tokens, desc="Caching sentiment scores"):
+        result = search_engine.compute_sentiment(tok)
+        search_engine.cache[tok] = result
+        if not math.isnan(result["average_score"]):
+            token_avg_scores.append(result["average_score"])
+
+    # -------------------------------------------------------
+    # Pass 2: Compute global normalization stats (mean/std)
+    # -------------------------------------------------------
+    if token_avg_scores:
+        global_mean = float(np.mean(token_avg_scores))
+        global_std = float(np.std(token_avg_scores)) if np.std(token_avg_scores) != 0 else 1.0
+    else:
+        global_mean, global_std = 0.0, 1.0
+
+    search_engine.global_mean = global_mean
+    search_engine.global_std = global_std
+
+    print(f"[INFO] Global normalization: mean={global_mean:.4f}, std={global_std:.4f}")
+
+    # -------------------------------------------------------
+    # Pass 3: Normalize cached average scores globally
+    # -------------------------------------------------------
+    for tok, result in search_engine.cache.items():
+        norm_score = (result["average_score"] - global_mean) / global_std
+        result["average_score"] = norm_score
+
+    # Save cache to disk
+    with open("sentiment_cache.json", "w", encoding="utf-8") as f:
+        json.dump(search_engine.cache, f, ensure_ascii=False, indent=2)
+
+    # -------------------------------------------------------
+    # Pass 4: Predict using globally normalized cached scores
+    # -------------------------------------------------------
     preds = []
-    for row in tqdm(balanced_df.itertuples(), total=len(balanced_df)):
+    for row in tqdm(balanced_df.itertuples(), total=len(balanced_df), desc="Predicting"):
         tokens = row.text.split()
-        tok_scores = [search_engine.compute_sentiment(tok)["average_score"] for tok in tokens]
-        pred = sum(tok_scores)
-        pred = "positive" if pred > 0 else "negative"
+        text_score = np.mean([search_engine.cache.get(tok, {"average_score": 0.0})["average_score"] for tok in tokens])
+
+        pred = "positive" if text_score >= 0.0 else "negative"
         preds.append(pred)
 
-    print(classification_report(labels, preds, target_names=le.classes_, zero_division=0))
+    print("\n" + classification_report(labels, preds, target_names=list(set(labels)), zero_division=0))
 
 
 if __name__ == "__main__":

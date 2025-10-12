@@ -31,7 +31,7 @@ def tokenize(text: str, lang='english'):
 
     return [t for t in tokens if t not in (ENGLISH_STOPWORDS if lang == 'english' else TURKISH_STOPWORDS)]
 
-def filter_by_frequency(matrix, min_freq=3):
+def filter_by_frequency(matrix, min_freq=20):
     """
     matrix: list of lists of strings
     min_freq: keep only words with frequency >= min_freq across the whole matrix
@@ -42,7 +42,6 @@ def filter_by_frequency(matrix, min_freq=3):
     # Filter each row
     filtered = [[word for word in row if freq[word] >= min_freq] for row in matrix]
     return filtered
-
 
 # For supervised approaches, leveraging the below one led to better success rates
 def preprocess_text(text, lang='english'):
