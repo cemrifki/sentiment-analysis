@@ -209,7 +209,7 @@ class SentProp:
 
         # Symmetrize
         self.graph = (E + E.T) / 2
-        
+
     def propagate(self, seed_words: list):
         """Random walk label propagation."""
         if self.graph is None:
@@ -283,7 +283,7 @@ def main(args=None):
     dataset_path = args.dataset
     LANG = args.lang
 
-    df = pd.read_csv(dataset_path).iloc[:100] # must have columns: text, sentiment
+    df = pd.read_csv(dataset_path) # must have columns: text, sentiment
 
     df["sentiment"] = (df["sentiment"].str.lower().
                      map(LABEL_MAP)
