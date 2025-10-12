@@ -188,20 +188,28 @@ class SentProp:
         """Lexical graph with cosine similarity."""
         V = len(self.vocab)
         E = np.zeros((V, V))
+
         for i in range(V):
             sims = []
             for j in range(V):
                 if i == j:
                     continue
-                sim = 1 - np.dot(self.embeddings[i], self.embeddings[j]) / (
-                    np.linalg.norm(self.embeddings[i]) * np.linalg.norm(self.embeddings[j]) + 1e-10
-                )
-                sims.append((j, 1 - sim))  # use similarity
-            sims.sort(key=lambda x: x[1], reverse=True)
-            for j, sim in sims[:self.k_neighbors]:
-                E[i, j] = np.arccos(np.clip(sim, -1, 1))
-        self.graph = (E + E.T) / 2
+                # Compute cosine similarity
+                denom = (np.linalg.norm(self.embeddings[i]) * np.linalg.norm(self.embeddings[j])) + 1e-10
+                cos_sim = np.dot(self.embeddings[i], self.embeddings[j]) / denom
+                
+                sims.append((j, cos_sim))
 
+            # Sort by descending similarity
+            sims.sort(key=lambda x: x[1], reverse=True)
+
+            # Connect top-k neighbors with angular distance weight
+            for j, cos_sim in sims[:self.k_neighbors]:
+                E[i, j] = np.arccos(np.clip(-cos_sim, -1.0, 1.0))
+
+        # Symmetrize
+        self.graph = (E + E.T) / 2
+        
     def propagate(self, seed_words: list):
         """Random walk label propagation."""
         if self.graph is None:
@@ -275,7 +283,7 @@ def main(args=None):
     dataset_path = args.dataset
     LANG = args.lang
 
-    df = pd.read_csv(dataset_path) # must have columns: text, sentiment
+    df = pd.read_csv(dataset_path).iloc[:100] # must have columns: text, sentiment
 
     df["sentiment"] = (df["sentiment"].str.lower().
                      map(LABEL_MAP)
