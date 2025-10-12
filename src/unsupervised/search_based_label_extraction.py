@@ -80,7 +80,7 @@ class SearchEngine:
     def __init__(self, lang: str, near: int = 4, time_conn: int = 5, cache_path="cached_sentiments.json"):
         self.constants = Constants(lang=lang)
         self.lang = lang
-        self.near = near
+        self.near = near  # <-- configurable NEAR window size
         self.time_conn = time_conn
         self.cache_path = cache_path
         self.cache = self._load_cache()
