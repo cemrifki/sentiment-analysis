@@ -15,9 +15,14 @@ from sklearn.metrics import classification_report, accuracy_score, f1_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 import nltk
 
+# Local imports
+from src.utils.utils import preprocess_text, compute_delta_idf, LABEL_MAP
+
+
 # Download stopwords if not already
 nltk.download("stopwords")
 from nltk.corpus import stopwords
+
 
 # Sentiment label mapping
 LABEL_MAP = {
@@ -26,47 +31,6 @@ LABEL_MAP = {
     "neg": "negative",
     "n": "negative"
 }
-
-# -----------------------------
-# Text Preprocessing
-# -----------------------------
-def preprocess_text(text, lang="english"):
-    """Lowercase, remove punctuation, stopwords"""
-    text = str(text).lower()
-    # text = re.sub(r"[^\w\s]", " ", text)  # remove punctuation
-    text = re.sub(r"([.?!,;:]+)", " \1 ", text)
-    text = re.sub(r"[ ]+", " ", text).strip()
-    tokens = text.split()
-    stop_words = set(stopwords.words(lang)) if lang in stopwords.fileids() else set()
-    tokens = [t for t in tokens]  # if t not in stop_words]
-    return tokens
-
-
-# -----------------------------
-# Delta-IDF Computation
-# -----------------------------
-def compute_delta_idf(docs, labels, lang="english"):
-    """
-    Compute delta-IDF per word based on class distributions.
-    labels: "positive"/"negative"
-    """
-    vectorizer = TfidfVectorizer(tokenizer=lambda x: preprocess_text(x, lang), lowercase=False)
-    X = vectorizer.fit_transform(docs)
-    vocab = vectorizer.get_feature_names_out()
-
-    # Split by class
-    pos_idx = np.where(labels == "positive")[0]
-    neg_idx = np.where(labels == "negative")[0]
-
-    # Term frequencies
-    pos_tf = np.array(X[pos_idx].sum(axis=0)).flatten() + 1
-    neg_tf = np.array(X[neg_idx].sum(axis=0)).flatten() + 1
-
-    # Delta IDF score
-    delta_idf = np.log(pos_tf / neg_tf)
-
-    return dict(zip(vocab, delta_idf))
-
 
 # -----------------------------
 # Feature Extraction
@@ -87,8 +51,6 @@ def extract_features(docs, word_scores, lang="english"):
         features.append(feats)
 
     return np.array(features)
-
-
 
 # -----------------------------
 # Training + Evaluation
@@ -139,8 +101,8 @@ def run_supervised_pipeline(df, lang="english", text_col="text", label_col="sent
 
 def main(args):
 
-    lang=args.lang
-    dataset_path=args.dataset
+    lang = args.lang
+    dataset_path = args.dataset
 
     df = pd.read_csv(dataset_path)  # must have columns: text, sentiment
     results = run_supervised_pipeline(df, lang=lang)

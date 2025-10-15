@@ -31,6 +31,10 @@ from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 
+
+from src.utils.utils import preprocess_text, compute_delta_idf, LABEL_MAP
+
+
 # Setup / configuration
 warnings.filterwarnings("ignore")
 
@@ -117,7 +121,6 @@ def adjust_polarity(root_score, morphemes):
         polarity *= MORPH_MULTIPLIERS.get(m, 1)        
     return polarity
 
-
 # Step 3: Texts to features
 def text_to_features(text, root_delta):
     parsed = parse_sentence(text)
@@ -136,35 +139,30 @@ def text_to_features(text, root_delta):
 
 
 def main(args=None):
-
+    """Main execution function"""
     dataset_path=args.dataset
-    df = pd.read_csv(dataset_path).iloc[:1000] # must have columns: text, sentiment
+    df = pd.read_csv(dataset_path)  # must have columns: text, sentiment
     
+    df[LABEL] = (df[LABEL].str.lower().
+                map(LABEL_MAP)
+                )
+
     X_train_texts, X_test_texts, y_train, y_test = train_test_split(
         df[TEXT_COL], df[LABEL], test_size=0.2, stratify=df[LABEL], random_state=42
     )
 
-    # Vectorizer + delta-IDF computation
-    vectorizer = TfidfVectorizer(lowercase=False)
-    X_train_vec = vectorizer.fit_transform(X_train_texts)
-    X_test_vec = vectorizer.transform(X_test_texts)
-    terms = vectorizer.get_feature_names_out()
+    # Delta-IDF scores from training set
+    word_scores = compute_delta_idf(X_train_texts, y_train, lang="turkish")
 
-    # Root delta-IDF
-    pos_idx = [i for i, l in enumerate(y_train) if l == "P"]
-    neg_idx = [i for i, l in enumerate(y_train) if l == "N"]
-    root_delta = defaultdict(float)
-    for term in terms:
-        tidx = vectorizer.vocabulary_[term]
-        pos_val = np.sum(X_train_vec[pos_idx, tidx].toarray()) if pos_idx else 0
-        neg_val = np.sum(X_train_vec[neg_idx, tidx].toarray()) if neg_idx else 0
-        root_delta[term] = math.log((pos_val + 0.001) / (neg_val + 0.001))
+    X_train_features = np.array([text_to_features(t, word_scores) for t in X_train_texts])
+    X_test_features = np.array([text_to_features(t, word_scores) for t in X_test_texts])
 
-    X_train_features = np.array([text_to_features(t, root_delta) for t in X_train_texts])
-    X_test_features = np.array([text_to_features(t, root_delta) for t in X_test_texts])
 
-    clf = LogisticRegression()
+    # Train SVM
+    clf = SVC(kernel="linear", random_state=42)
     clf.fit(X_train_features, y_train)
+
+    # Predictions
     y_pred = clf.predict(X_test_features)
 
     print("Accuracy:", accuracy_score(y_test, y_pred))
