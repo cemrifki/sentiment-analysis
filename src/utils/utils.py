@@ -55,13 +55,12 @@ def filter_by_frequency(matrix, min_freq=20):
 def preprocess_text(text, lang="english"):
     """Lowercase, remove punctuation, stopwords"""
     text = str(text).lower()
-    # text = re.sub(r"[^\w\s]", " ", text)  # remove punctuation
     text = re.sub(r"([.?!,;:]+)", " \1 ", text)
     text = re.sub(r"[ ]+", " ", text).strip()
     tokens = text.split()
     stop_words = set(stopwords.words(lang)) if lang in stopwords.fileids() else set()
     tokens = [t for t in tokens if t not in stop_words]
-    return tokens
+    return " ".join(tokens)
 
 # -----------------------------
 # Delta-IDF Computation
@@ -71,7 +70,9 @@ def compute_delta_idf(docs, labels, lang="english"):
     Compute delta-IDF per word based on class distributions.
     labels: "positive"/"negative"
     """
-    vectorizer = TfidfVectorizer(tokenizer=lambda x: preprocess_text(x, lang), lowercase=False)
+    vectorizer = TfidfVectorizer(lowercase=False,     
+                                 token_pattern=r"[^ ]+"  # split only by spaces
+                                 )
     X = vectorizer.fit_transform(docs)
     vocab = vectorizer.get_feature_names_out()
 

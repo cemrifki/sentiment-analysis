@@ -8,20 +8,14 @@ Date: 16/04/2020
 
 import pandas as pd
 import numpy as np
-import re
+
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, accuracy_score, f1_score
-from sklearn.feature_extraction.text import TfidfVectorizer
-import nltk
+
 
 # Local imports
 from src.utils.utils import preprocess_text, compute_delta_idf, LABEL_MAP
-
-
-# Download stopwords if not already
-nltk.download("stopwords")
-from nltk.corpus import stopwords
 
 
 # Sentiment label mapping
@@ -39,8 +33,9 @@ def extract_features(docs, word_scores, lang="english"):
     """Get min, max, mean polarity scores per document."""
     features = []
 
+    # For each document, including tokens
     for doc in docs:
-        tokens = preprocess_text(doc, lang)
+        tokens = doc.split()
         scores = [word_scores.get(tok, 0.0) for tok in tokens]
 
         if len(scores) == 0:
@@ -65,6 +60,8 @@ def run_supervised_pipeline(df, lang="english", text_col="text", label_col="sent
     
     # Drop rows with missing labels
     df = df.dropna(subset=[label_col])
+
+    df[text_col] = df[text_col].astype(str).apply(lambda x: preprocess_text(x, lang=lang))  
 
     # Train/test split
     train_df, test_df = train_test_split(df, test_size=0.2, stratify=df[label_col], random_state=42)
@@ -97,7 +94,6 @@ def run_supervised_pipeline(df, lang="english", text_col="text", label_col="sent
         "model": clf,
         "word_scores": word_scores,
     }
-
 
 def main(args):
 

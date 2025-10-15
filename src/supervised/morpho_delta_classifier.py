@@ -10,10 +10,7 @@ Date: 15/04/2020
 """
 
 # Standard libraries
-import math
-import re
 import warnings
-from collections import defaultdict
 
 # Data manipulation
 import pandas as pd
@@ -25,8 +22,6 @@ import jpype.imports
 from jpype.types import *
 
 # Scikit-learn
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
@@ -121,11 +116,10 @@ def adjust_polarity(root_score, morphemes):
         polarity *= MORPH_MULTIPLIERS.get(m, 1)        
     return polarity
 
-# Step 3: Texts to features
-def text_to_features(text, root_delta):
-    parsed = parse_sentence(text)
+# Step 3: Parsed texts to sentiment features
+def parsed_text_to_three_sent_scores(parsed_text, root_delta):
     polarities = []
-    for token, root, morphs in parsed:
+    for token, root, morphs in parsed_text:
         root_score = root_delta.get(root, 0)
         adjusted = adjust_polarity(root_score, morphs)
         if (root in ("yok", "değil")) and polarities:
@@ -137,6 +131,14 @@ def text_to_features(text, root_delta):
     else:
         return [0.0, 0.0, 0.0]
 
+def get_root_only(parsed_texts):
+    """
+    Extract only root words from parsed texts.
+    parsed_texts: list of parsed texts (output of parse_sentence)
+    """
+    roots = [" ".join([root for token, root, morphs in parsed_tokens]) \
+             for parsed_tokens in parsed_texts]
+    return roots
 
 def main(args=None):
     """Main execution function"""
@@ -151,11 +153,16 @@ def main(args=None):
         df[TEXT_COL], df[LABEL], test_size=0.2, stratify=df[LABEL], random_state=42
     )
 
-    # Delta-IDF scores from training set
-    word_scores = compute_delta_idf(X_train_texts, y_train, lang="turkish")
+    # Preprocess and then parse texts
+    X_train_parsed = [parse_sentence(preprocess_text(text, lang=args.lang)) for text in X_train_texts]
+    X_test_parsed = [parse_sentence(preprocess_text(text, lang=args.lang)) for text in X_test_texts]
 
-    X_train_features = np.array([text_to_features(t, word_scores) for t in X_train_texts])
-    X_test_features = np.array([text_to_features(t, word_scores) for t in X_test_texts])
+    # Delta-IDF scores from training set
+    delta_idf_scores = compute_delta_idf(get_root_only(X_train_parsed), y_train, lang="turkish")
+
+    # Extract sentiment features (mean, max, min adjusted scores)
+    X_train_features = np.array([parsed_text_to_three_sent_scores(t, delta_idf_scores) for t in X_train_parsed])
+    X_test_features = np.array([parsed_text_to_three_sent_scores(t, delta_idf_scores) for t in X_test_parsed])
 
 
     # Train SVM
