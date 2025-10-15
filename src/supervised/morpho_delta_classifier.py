@@ -153,9 +153,13 @@ def main(args=None):
         df[TEXT_COL], df[LABEL], test_size=0.2, stratify=df[LABEL], random_state=42
     )
 
-    # Preprocess and then parse texts
-    X_train_parsed = [parse_sentence(preprocess_text(text, lang=args.lang)) for text in X_train_texts]
-    X_test_parsed = [parse_sentence(preprocess_text(text, lang=args.lang)) for text in X_test_texts]
+    # Preprocess  texts
+    preprocessed_train = [preprocess_text(text, lang=args.lang) for text in X_train_texts]
+    preprocessed_test = [preprocess_text(text, lang=args.lang) for text in X_test_texts]
+
+    # Parse texts with Zemberek
+    X_train_parsed = [parse_sentence(text) for text in preprocessed_train]
+    X_test_parsed = [parse_sentence(text) for text in preprocessed_test]
 
     # Delta-IDF scores from training set
     delta_idf_scores = compute_delta_idf(get_root_only(X_train_parsed), y_train, lang="turkish")

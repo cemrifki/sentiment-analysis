@@ -1,23 +1,34 @@
+# ------------------------------
 # Standard libraries
+# ------------------------------
 import re
 from collections import Counter
 
+# ------------------------------
 # Data manipulation
+# ------------------------------
 import numpy as np
 
+# ------------------------------
 # NLP
+# ------------------------------
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
+# ------------------------------
 # Scikit-learn
+# ------------------------------
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+# ------------------------------
 # Setup / download resources
-nltk.download("stopwords", quiet=True)  # download only if needed, suppress output
+# ------------------------------
+nltk.download("stopwords", quiet=True)  # download only if not present
 
-
+# ------------------------------
 # Constants
+# ------------------------------
 ENGLISH_STOPWORDS = set(stopwords.words("english"))
 TURKISH_STOPWORDS = set(stopwords.words("turkish"))
 
@@ -29,6 +40,10 @@ LABEL_MAP = {
     "n": "negative"
 }
 
+
+# ------------------------------
+# Tokenization
+# ------------------------------
 def tokenize(text: str, lang='english'):
     """Lowercase + whitespace split + English stopword removal."""
     text = text.lower()
@@ -58,7 +73,7 @@ def preprocess_text(text, lang="english"):
     text = re.sub(r"([.?!,;:]+)", " \1 ", text)
     text = re.sub(r"[ ]+", " ", text).strip()
     tokens = text.split()
-    stop_words = set(stopwords.words(lang)) if lang in stopwords.fileids() else set()
+    stop_words = ENGLISH_STOPWORDS if lang == "english" else TURKISH_STOPWORDS
     tokens = [t for t in tokens if t not in stop_words]
     return " ".join(tokens)
 
